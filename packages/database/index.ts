@@ -1,21 +1,44 @@
 import "server-only";
 
-import { neonConfig } from "@neondatabase/serverless";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import ws from "ws";
-import { PrismaClient } from "./generated/client";
+import type { D1Database } from "@cloudflare/workers-types";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { drizzle } from "drizzle-orm/d1";
 import { keys } from "./keys";
+import * as schema from "./schema";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+type DatabaseInstance = ReturnType<typeof drizzle<typeof schema>>;
 
-neonConfig.webSocketConstructor = ws;
+const { CLOUDFLARE_D1_DATABASE } = keys();
 
-const adapter = new PrismaNeon({ connectionString: keys().DATABASE_URL });
+let cached: DatabaseInstance | null = null;
 
-export const database = globalForPrisma.prisma || new PrismaClient({ adapter });
+const resolveBinding = async (): Promise<D1Database> => {
+  const context = await getCloudflareContext({ async: true });
+  const envBindings = context?.env as Record<string, unknown> | undefined;
+  const binding = envBindings?.[CLOUDFLARE_D1_DATABASE];
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = database;
-}
+  if (!binding) {
+    throw new Error(
+      `D1 binding "${CLOUDFLARE_D1_DATABASE}" is not available in this environment.`
+    );
+  }
 
-export * from "./generated/client";
+  return binding as D1Database;
+};
+
+export const getDatabase = async (): Promise<DatabaseInstance> => {
+  if (cached) {
+    return cached;
+  }
+
+  const binding = await resolveBinding();
+  const instance = drizzle(binding, { schema });
+
+  if (process.env.NODE_ENV !== "production") {
+    cached = instance;
+  }
+
+  return instance;
+};
+
+export * from "./schema";

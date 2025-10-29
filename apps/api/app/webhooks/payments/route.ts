@@ -3,7 +3,7 @@ import { clerkClient } from "@repo/auth/server";
 import { parseError } from "@repo/observability/error";
 import { log } from "@repo/observability/log";
 import type { Stripe } from "@repo/payments";
-import { stripe } from "@repo/payments";
+import { stripe, stripeWebhookCryptoProvider } from "@repo/payments";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { env } from "@/env";
@@ -34,7 +34,7 @@ const handleCheckoutSessionCompleted = async (
     return;
   }
 
-  analytics.capture({
+  await analytics.capture({
     event: "User Subscribed",
     distinctId: user.id,
   });
@@ -55,7 +55,7 @@ const handleSubscriptionScheduleCanceled = async (
     return;
   }
 
-  analytics.capture({
+  await analytics.capture({
     event: "User Unsubscribed",
     distinctId: user.id,
   });
@@ -75,10 +75,12 @@ export const POST = async (request: Request): Promise<Response> => {
       throw new Error("missing stripe-signature header");
     }
 
-    const event = stripe.webhooks.constructEvent(
+    const event = await stripe.webhooks.constructEventAsync(
       body,
       signature,
-      env.STRIPE_WEBHOOK_SECRET
+      env.STRIPE_WEBHOOK_SECRET,
+      undefined,
+      stripeWebhookCryptoProvider
     );
 
     switch (event.type) {

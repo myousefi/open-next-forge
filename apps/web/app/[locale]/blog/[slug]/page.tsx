@@ -13,10 +13,18 @@ import { notFound } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { env } from "@/env";
 
-const protocol = env.VERCEL_PROJECT_PRODUCTION_URL?.startsWith("https")
-  ? "https"
-  : "http";
-const url = new URL(`${protocol}://${env.VERCEL_PROJECT_PRODUCTION_URL}`);
+const getBaseUrl = () => {
+  const fallback = env.NEXT_PUBLIC_WEB_URL;
+  const origin = env.WEB_ORIGIN ?? fallback;
+
+  try {
+    return new URL(origin);
+  } catch {
+    return new URL(fallback);
+  }
+};
+
+const baseUrl = getBaseUrl();
 
 type BlogPostProperties = {
   readonly params: Promise<{
@@ -72,7 +80,7 @@ const BlogPost = async ({ params }: BlogPostProperties) => {
                 description: page.description,
                 mainEntityOfPage: {
                   "@type": "WebPage",
-                  "@id": new URL(`/blog/${page._slug}`, url).toString(),
+                  "@id": new URL(`/blog/${page._slug}`, baseUrl).toString(),
                 },
                 headline: page._title,
                 image: page.image.url,

@@ -4,9 +4,10 @@ import { z } from "zod";
 export const keys = () =>
   createEnv({
     server: {
-      DATABASE_URL: z.url(),
+      CLOUDFLARE_D1_DATABASE: z.string().default("APP_DATABASE"),
     },
     runtimeEnv: {
-      DATABASE_URL: process.env.DATABASE_URL,
+      CLOUDFLARE_D1_DATABASE:
+        process.env.CLOUDFLARE_D1_DATABASE ?? "APP_DATABASE",
     },
   });

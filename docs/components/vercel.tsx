@@ -17,13 +17,15 @@ export const VercelButton = () => {
   url.searchParams.set(
     "env",
     [
-      "DATABASE_URL",
       "RESEND_TOKEN",
       "RESEND_FROM",
       "CLERK_WEBHOOK_SECRET",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
       "BASEHUB_TOKEN",
+      "CLOUDFLARE_LOGPUSH_URL",
+      "CLOUDFLARE_LOGPUSH_TOKEN",
+      "OBSERVABILITY_STATUS_ENDPOINT",
       "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
       "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
       "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL",

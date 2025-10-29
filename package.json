@@ -18,7 +18,7 @@
     "boundaries": "turbo boundaries",
     "bump-deps": "npx npm-check-updates --deep -u -x react-day-picker,recharts",
     "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/design-system",
-    "migrate": "cd packages/database && npx prisma format && npx prisma generate && npx prisma db push",
+    "migrate": "echo \"Use Wrangler D1 migrations for schema changes\"",
     "clean": "git clean -xdf node_modules"
   },
   "devDependencies": {

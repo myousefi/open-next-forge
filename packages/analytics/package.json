@@ -9,9 +9,7 @@
   "dependencies": {
     "@next/third-parties": "15.5.4",
     "@t3-oss/env-nextjs": "^0.13.8",
-    "@vercel/analytics": "^1.5.0",
     "posthog-js": "^1.272.0",
-    "posthog-node": "^5.9.2",
     "react": "19.2.0",
     "server-only": "^0.0.1",
     "zod": "^4.1.12"

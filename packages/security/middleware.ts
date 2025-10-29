@@ -1,4 +1,4 @@
-import { defaults, type Options, withVercelToolbar } from "@nosecone/next";
+import { defaults, type Options } from "@nosecone/next";
 
 // biome-ignore lint/performance/noBarrelFile: "re-exporting"
 export { createMiddleware as securityMiddleware } from "@nosecone/next";
@@ -14,5 +14,6 @@ export const noseconeOptions: Options = {
   contentSecurityPolicy: false,
 };
 
-export const noseconeOptionsWithToolbar: Options =
-  withVercelToolbar(noseconeOptions);
+// The Cloudflare feature flag inspector loads client-side only, so the base
+// Nosecone configuration can be reused when the toolbar is enabled.
+export const noseconeOptionsWithToolbar: Options = noseconeOptions;

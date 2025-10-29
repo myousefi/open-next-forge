@@ -7,7 +7,7 @@ import {
 import type { NextMiddleware } from "next/server";
 import { env } from "./env";
 
-const securityHeaders = env.FLAGS_SECRET
+const securityHeaders = env.NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL
   ? securityMiddleware(noseconeOptionsWithToolbar)
   : securityMiddleware(noseconeOptions);
 
@@ -25,5 +25,5 @@ export const config = {
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],
-  runtime: "nodejs",
+  runtime: "edge",
 };

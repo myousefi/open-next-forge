@@ -152,7 +152,7 @@ export default async function getHypertune(params?: {
 
   const { userId, orgId, sessionId } = await auth();
 
-  // Respect flag overrides set by the Vercel Toolbar
+  // Respect flag overrides set by the feature flag inspector toolbar
   hypertuneSource.setOverride(await getVercelOverride());
 
   return hypertuneSource.root({

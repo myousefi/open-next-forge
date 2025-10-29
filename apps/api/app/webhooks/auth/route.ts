@@ -12,8 +12,8 @@ import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { env } from "@/env";
 
-const handleUserCreated = (data: UserJSON) => {
-  analytics.identify({
+const handleUserCreated = async (data: UserJSON) => {
+  await analytics.identify({
     distinctId: data.id,
     properties: {
       email: data.email_addresses.at(0)?.email_address,
@@ -25,7 +25,7 @@ const handleUserCreated = (data: UserJSON) => {
     },
   });
 
-  analytics.capture({
+  await analytics.capture({
     event: "User Created",
     distinctId: data.id,
   });
@@ -33,8 +33,8 @@ const handleUserCreated = (data: UserJSON) => {
   return new Response("User created", { status: 201 });
 };
 
-const handleUserUpdated = (data: UserJSON) => {
-  analytics.identify({
+const handleUserUpdated = async (data: UserJSON) => {
+  await analytics.identify({
     distinctId: data.id,
     properties: {
       email: data.email_addresses.at(0)?.email_address,
@@ -46,7 +46,7 @@ const handleUserUpdated = (data: UserJSON) => {
     },
   });
 
-  analytics.capture({
+  await analytics.capture({
     event: "User Updated",
     distinctId: data.id,
   });
@@ -54,16 +54,16 @@ const handleUserUpdated = (data: UserJSON) => {
   return new Response("User updated", { status: 201 });
 };
 
-const handleUserDeleted = (data: DeletedObjectJSON) => {
+const handleUserDeleted = async (data: DeletedObjectJSON) => {
   if (data.id) {
-    analytics.identify({
+    await analytics.identify({
       distinctId: data.id,
       properties: {
         deleted: new Date(),
       },
     });
 
-    analytics.capture({
+    await analytics.capture({
       event: "User Deleted",
       distinctId: data.id,
     });
@@ -72,8 +72,8 @@ const handleUserDeleted = (data: DeletedObjectJSON) => {
   return new Response("User deleted", { status: 201 });
 };
 
-const handleOrganizationCreated = (data: OrganizationJSON) => {
-  analytics.groupIdentify({
+const handleOrganizationCreated = async (data: OrganizationJSON) => {
+  await analytics.groupIdentify({
     groupKey: data.id,
     groupType: "company",
     distinctId: data.created_by,
@@ -84,7 +84,7 @@ const handleOrganizationCreated = (data: OrganizationJSON) => {
   });
 
   if (data.created_by) {
-    analytics.capture({
+    await analytics.capture({
       event: "Organization Created",
       distinctId: data.created_by,
     });
@@ -93,8 +93,8 @@ const handleOrganizationCreated = (data: OrganizationJSON) => {
   return new Response("Organization created", { status: 201 });
 };
 
-const handleOrganizationUpdated = (data: OrganizationJSON) => {
-  analytics.groupIdentify({
+const handleOrganizationUpdated = async (data: OrganizationJSON) => {
+  await analytics.groupIdentify({
     groupKey: data.id,
     groupType: "company",
     distinctId: data.created_by,
@@ -105,7 +105,7 @@ const handleOrganizationUpdated = (data: OrganizationJSON) => {
   });
 
   if (data.created_by) {
-    analytics.capture({
+    await analytics.capture({
       event: "Organization Updated",
       distinctId: data.created_by,
     });
@@ -114,16 +114,16 @@ const handleOrganizationUpdated = (data: OrganizationJSON) => {
   return new Response("Organization updated", { status: 201 });
 };
 
-const handleOrganizationMembershipCreated = (
+const handleOrganizationMembershipCreated = async (
   data: OrganizationMembershipJSON
 ) => {
-  analytics.groupIdentify({
+  await analytics.groupIdentify({
     groupKey: data.organization.id,
     groupType: "company",
     distinctId: data.public_user_data.user_id,
   });
 
-  analytics.capture({
+  await analytics.capture({
     event: "Organization Member Created",
     distinctId: data.public_user_data.user_id,
   });
@@ -131,12 +131,12 @@ const handleOrganizationMembershipCreated = (
   return new Response("Organization membership created", { status: 201 });
 };
 
-const handleOrganizationMembershipDeleted = (
+const handleOrganizationMembershipDeleted = async (
   data: OrganizationMembershipJSON
 ) => {
   // Need to unlink the user from the group
 
-  analytics.capture({
+  await analytics.capture({
     event: "Organization Member Deleted",
     distinctId: data.public_user_data.user_id,
   });
@@ -195,31 +195,31 @@ export const POST = async (request: Request): Promise<Response> => {
 
   switch (eventType) {
     case "user.created": {
-      response = handleUserCreated(event.data);
+      response = await handleUserCreated(event.data);
       break;
     }
     case "user.updated": {
-      response = handleUserUpdated(event.data);
+      response = await handleUserUpdated(event.data);
       break;
     }
     case "user.deleted": {
-      response = handleUserDeleted(event.data);
+      response = await handleUserDeleted(event.data);
       break;
     }
     case "organization.created": {
-      response = handleOrganizationCreated(event.data);
+      response = await handleOrganizationCreated(event.data);
       break;
     }
     case "organization.updated": {
-      response = handleOrganizationUpdated(event.data);
+      response = await handleOrganizationUpdated(event.data);
       break;
     }
     case "organizationMembership.created": {
-      response = handleOrganizationMembershipCreated(event.data);
+      response = await handleOrganizationMembershipCreated(event.data);
       break;
     }
     case "organizationMembership.deleted": {
-      response = handleOrganizationMembershipDeleted(event.data);
+      response = await handleOrganizationMembershipDeleted(event.data);
       break;
     }
     default: {

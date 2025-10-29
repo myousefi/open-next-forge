@@ -3,25 +3,28 @@ title: Uptime Monitoring
 description: How we've configured uptime monitoring in next-forge.
 ---
 
-Uptime monitoring functionality is configured through BetterStack's dashboard.
+Uptime monitoring can be powered by any service that exposes a simple status endpoint. We recommend creating a lightweight Workers route that aggregates the health of your application (for example, by checking cached results from Cloudflare Load Balancer health checks or internal probes) and returning a JSON payload in the following shape:
 
-## Setting up monitoring
+```json title="Example status payload"
+{
+  "status": "operational",
+  "label": "All systems normal",
+  "url": "https://status.next-forge.com"
+}
+```
 
-When you create your project, I recommend adding some specific URLs to monitor. Assuming we're using `next-forge.com` and it's subdomains, here's what you should add:
-
-1. `next-forge.com` - the `web` project, should be up if the index page returns a successful response.
-2. `app.next-forge.com` - the `app` project, should be up if the index page returns a successful response.
-3. `api.next-forge.com/health` - the `api` project, should be up if the `health` route returns a successful response. This is a stub endpoint that runs on Edge runtime so it's very quick.
-
-## Usage in the UI
+## Using the Status component
 
 next-forge provides a `Status` component from `@repo/observability` that displays the current status of the application. You can see an example of this in the website footer.
 
-The status component shows 3 potential states:
+The status component recognises the following `status` values:
 
-- `All systems normal` - 100% of the uptime monitors are reporting up
-- `Partial outage` - at least one uptime monitor is reporting down
-- `Degraded performance` - 0% of the uptime monitors are reporting up
+- `operational` or `ok` – renders `All systems normal`
+- `degraded`, `partial`, or `partial_outage` – renders `Partial outage`
+- `down` or `outage` – renders `Degraded performance`
+- any other value – renders `Status unknown`
 
-This functionality relies on the `BETTERSTACK_API_KEY` and `BETTERSTACK_URL` environment variables.
+You can override the text by providing a `label` field and optionally direct users to a status page with the `url` field.
+
+Expose the endpoint URL via the `OBSERVABILITY_STATUS_ENDPOINT` environment variable in each app that renders the status component.
 

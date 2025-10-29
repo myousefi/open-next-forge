@@ -1,0 +1,62 @@
+name = "next-forge-app"
+main = ".open-next/worker.js"
+compatibility_date = "2025-02-15"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "${CLOUDFLARE_ACCOUNT_ID}"
+workers_dev = false
+
+routes = [
+  { pattern = "app.example.com/*", zone_id = "${CLOUDFLARE_ZONE_ID_APP}" }
+]
+
+[vars]
+CLERK_SECRET_KEY = "${CLERK_SECRET_KEY}"
+CLERK_WEBHOOK_SECRET = "${CLERK_WEBHOOK_SECRET}"
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}"
+NEXT_PUBLIC_POSTHOG_KEY = "${NEXT_PUBLIC_POSTHOG_KEY}"
+NEXT_PUBLIC_POSTHOG_HOST = "${NEXT_PUBLIC_POSTHOG_HOST}"
+NEXT_PUBLIC_SENTRY_DSN = "${NEXT_PUBLIC_SENTRY_DSN}"
+FLAGS_SECRET = "${FLAGS_SECRET}"
+RESEND_TOKEN = "${RESEND_TOKEN}"
+RESEND_FROM = "${RESEND_FROM}"
+ARCJET_KEY = "${ARCJET_KEY}"
+SVIX_TOKEN = "${SVIX_TOKEN}"
+CLOUDFLARE_LOGPUSH_URL = "${CLOUDFLARE_LOGPUSH_URL}"
+CLOUDFLARE_LOGPUSH_TOKEN = "${CLOUDFLARE_LOGPUSH_TOKEN}"
+OBSERVABILITY_STATUS_ENDPOINT = "${OBSERVABILITY_STATUS_ENDPOINT}"
+
+[[kv_namespaces]]
+binding = "FEATURE_FLAGS_KV"
+id = "${APP_FEATURE_FLAGS_KV_ID}"
+preview_id = "${APP_FEATURE_FLAGS_KV_PREVIEW_ID}"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "next-forge-app-cache"
+preview_bucket_name = "next-forge-app-cache-preview"
+
+[[d1_databases]]
+binding = "APP_DATABASE"
+database_name = "next-forge-app-data"
+database_id = "${APP_DATABASE_ID}"
+preview_database_id = "${APP_DATABASE_PREVIEW_ID}"
+
+[[d1_databases]]
+binding = "NEXT_TAG_CACHE_D1"
+database_name = "next-forge-app-revalidations"
+database_id = "${APP_NEXT_TAG_CACHE_D1_ID}"
+preview_database_id = "${APP_NEXT_TAG_CACHE_D1_PREVIEW_ID}"
+
+[env.preview]
+workers_dev = true
+routes = [
+  { pattern = "app-preview.example.com/*", zone_id = "${CLOUDFLARE_ZONE_ID_APP}" }
+]
+
+[env.preview.vars]
+NEXT_PUBLIC_POSTHOG_KEY = "${PREVIEW_NEXT_PUBLIC_POSTHOG_KEY}"
+NEXT_PUBLIC_SENTRY_DSN = "${PREVIEW_NEXT_PUBLIC_SENTRY_DSN}"
+CLOUDFLARE_LOGPUSH_URL = "${PREVIEW_CLOUDFLARE_LOGPUSH_URL}"
+CLOUDFLARE_LOGPUSH_TOKEN = "${PREVIEW_CLOUDFLARE_LOGPUSH_TOKEN}"
+OBSERVABILITY_STATUS_ENDPOINT = "${PREVIEW_OBSERVABILITY_STATUS_ENDPOINT}"

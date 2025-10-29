@@ -1,0 +1,51 @@
+name = "next-forge-web"
+main = ".open-next/worker.js"
+compatibility_date = "2025-02-15"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "${CLOUDFLARE_ACCOUNT_ID}"
+workers_dev = false
+
+routes = [
+  { pattern = "www.example.com/*", zone_id = "${CLOUDFLARE_ZONE_ID_WEB}" }
+]
+
+[vars]
+NEXT_PUBLIC_POSTHOG_KEY = "${NEXT_PUBLIC_POSTHOG_KEY}"
+NEXT_PUBLIC_POSTHOG_HOST = "${NEXT_PUBLIC_POSTHOG_HOST}"
+NEXT_PUBLIC_SENTRY_DSN = "${NEXT_PUBLIC_SENTRY_DSN}"
+RESEND_TOKEN = "${RESEND_TOKEN}"
+RESEND_FROM = "${RESEND_FROM}"
+ARCJET_KEY = "${ARCJET_KEY}"
+CLOUDFLARE_LOGPUSH_URL = "${CLOUDFLARE_LOGPUSH_URL}"
+CLOUDFLARE_LOGPUSH_TOKEN = "${CLOUDFLARE_LOGPUSH_TOKEN}"
+OBSERVABILITY_STATUS_ENDPOINT = "${OBSERVABILITY_STATUS_ENDPOINT}"
+
+[[kv_namespaces]]
+binding = "WEB_CONTENT_CACHE"
+id = "${WEB_CONTENT_CACHE_ID}"
+preview_id = "${WEB_CONTENT_CACHE_PREVIEW_ID}"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "next-forge-web-cache"
+preview_bucket_name = "next-forge-web-cache-preview"
+
+[[d1_databases]]
+binding = "NEXT_TAG_CACHE_D1"
+database_name = "next-forge-web-revalidations"
+database_id = "${WEB_NEXT_TAG_CACHE_D1_ID}"
+preview_database_id = "${WEB_NEXT_TAG_CACHE_D1_PREVIEW_ID}"
+
+[env.preview]
+workers_dev = true
+routes = [
+  { pattern = "web-preview.example.com/*", zone_id = "${CLOUDFLARE_ZONE_ID_WEB}" }
+]
+
+[env.preview.vars]
+NEXT_PUBLIC_POSTHOG_KEY = "${PREVIEW_NEXT_PUBLIC_POSTHOG_KEY}"
+NEXT_PUBLIC_SENTRY_DSN = "${PREVIEW_NEXT_PUBLIC_SENTRY_DSN}"
+CLOUDFLARE_LOGPUSH_URL = "${PREVIEW_CLOUDFLARE_LOGPUSH_URL}"
+CLOUDFLARE_LOGPUSH_TOKEN = "${PREVIEW_CLOUDFLARE_LOGPUSH_TOKEN}"
+OBSERVABILITY_STATUS_ENDPOINT = "${PREVIEW_OBSERVABILITY_STATUS_ENDPOINT}"

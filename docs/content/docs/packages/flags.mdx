@@ -12,26 +12,34 @@ Feature flags (also known as feature toggles) allow you to control access to spe
 
 ## How it works
 
-next-forge implements feature flags using Vercel's [Flags SDK](https://vercel.com/docs/workflow-collaboration/feature-flags/flags-pattern-nextjs), which is mostly an architectural pattern for working with feature flags. This setup exists in the `@repo/feature-flags` package, so you can import and use it in as many projects as you'd like.
+next-forge stores flag definitions in a Cloudflare Worker backed by KV or Durable Objects. The Worker exposes a simple REST API that the `@repo/feature-flags` package calls to evaluate flag values for the current user. You can reuse this package across any workspace in the repo – each app simply needs to point at the same Worker URL and share API tokens.
 
-We've created an intelligent function called `createFlag` that you can use to create new flags, complete with authentication, PostHog integration and [Vercel Toolbar](/packages/toolbar) overrides without the hassle.
+We've created an intelligent helper called `createFlag` that wires your flag into Clerk authentication, retrieves the decision from Cloudflare, and exposes metadata for the inspector toolbar. Configure the Worker credentials with:
+
+- `FLAGS_SERVICE_URL` – the base URL of your Cloudflare Worker that exposes `/evaluate` and `/definitions` endpoints
+- `FLAGS_SERVICE_EVALUATION_TOKEN` – bearer token used by server components to resolve a user's flags
+- `FLAGS_SERVICE_ADMIN_TOKEN` – bearer token the toolbar route uses to read flag definitions
+- `FLAGS_SECRET` – shared secret protecting the `/.well-known/feature-flags` route
+- `NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL` – the URL to the Cloudflare-hosted inspector script that renders the toolbar in the browser
 
 <Tip>
-  For `FLAGS_SECRET`, you can run `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"` or `openssl rand -base64 32` in your terminal to generate a random value.
+  For `FLAGS_SECRET`, you can run `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"` or `openssl rand -base64 32` in your terminal to generate a random value. Use a separate secret for `FLAGS_SERVICE_EVALUATION_TOKEN` and `FLAGS_SERVICE_ADMIN_TOKEN` so you can rotate them independently.
 </Tip>
 
 ## Adding a new flag
 
-To add a new flag, simply create a feature flag in PostHog and then modify the feature flags index file. Let's add a new flag called `showAnalyticsFeature` that will be enabled for all users:
+To add a new flag, register it in your Cloudflare data store (for example, by writing it into KV) and then modify the feature flags index file. Let's add a new flag called `showAnalyticsFeature` with a helpful description so it shows up clearly in the inspector:
 
 ```ts title="packages/feature-flags/index.ts {4}"
 import { createFlag } from './lib/create-flag';
 
 export const showBetaFeature = createFlag('showBetaFeature');
-export const showAnalyticsFeature = createFlag('showAnalyticsFeature');
+export const showAnalyticsFeature = createFlag('showAnalyticsFeature', {
+  description: 'Surfaced Cloudflare Web Analytics dashboards to customers.',
+});
 ```
 
-Make sure the key you're using matches the key in PostHog exactly.
+Make sure the key you use here matches the key stored in Cloudflare exactly.
 
 ## Usage in your application
 
@@ -41,8 +49,8 @@ To use the flag in your application, simply import it from the `@repo/feature-fl
 import { showAnalyticsFeature } from '@repo/feature-flags';
 import { notFound } from 'next/navigation';
 
-export default function Page() {
-  const isEnabled = showAnalyticsFeature();
+export default async function Page() {
+  const isEnabled = await showAnalyticsFeature();
 
   if (!isEnabled) {
     notFound();
@@ -56,6 +64,4 @@ Because feature flags are tied to the user, they only work if the user is signed
 
 ## Overriding flags in development
 
-You can override flags in development by using the Vercel Toolbar. Simply open the toolbar by clicking the "Flag" icon in the top right and then selecting the flag you'd like to override.
-
-![/images/vercel-toolbar.png](/images/vercel-toolbar.png)
+You can override flags in development by using the Cloudflare feature flag inspector. Host the inspector UI in a Worker, point `NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL` at its script bundle, and click the "Flags" icon to toggle values locally. The inspector talks to the same `/.well-known/feature-flags` endpoint secured by `FLAGS_SECRET`, so overrides stay private to your environment.
