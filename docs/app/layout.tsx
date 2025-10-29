@@ -1,5 +1,5 @@
 import "./global.css";
-import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
+import Script from "next/script";
 import { RootProvider } from "fumadocs-ui/provider";
 import {
   Geist_Mono as createMono,
@@ -42,8 +42,17 @@ const Layout = ({ children }: LayoutProps) => (
         <RootProvider>
           <TooltipProvider>{children}</TooltipProvider>
         </RootProvider>
-        <VercelAnalytics />
       </ThemeProvider>
+      {process.env.NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN && (
+        <Script
+          data-cf-beacon={JSON.stringify({
+            token: process.env.NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN,
+          })}
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          strategy="afterInteractive"
+        />
+      )}
       <Toaster />
     </body>
   </html>

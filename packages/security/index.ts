@@ -1,40 +1,124 @@
 import arcjet, {
   type ArcjetBotCategory,
+  type ArcjetRequest,
   type ArcjetWellKnownBot,
   detectBot,
-  request,
   shield,
-} from "@arcjet/next";
+} from "arcjet";
+import { Logger } from "@arcjet/logger";
+import { createClient } from "@arcjet/protocol/client";
+import { createTransport } from "@arcjet/transport/workerd.js";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { keys } from "./keys";
 
 const arcjetKey = keys().ARCJET_KEY;
+
+const ARCJET_BASE_URL = "https://api.arcjet.com";
+const ARCJET_SDK_STACK = "NEXTJS";
+const ARCJET_SDK_VERSION = "1.0.0-beta.13";
+
+let arcjetClient: ReturnType<typeof arcjet> | null = null;
+
+const getArcjetClient = () => {
+  if (!arcjetKey) {
+    return null;
+  }
+
+  if (arcjetClient) {
+    return arcjetClient;
+  }
+
+  const client = createClient({
+    transport: createTransport(ARCJET_BASE_URL),
+    baseUrl: ARCJET_BASE_URL,
+    timeout: process.env.NODE_ENV === "development" ? 1000 : 500,
+    sdkStack: ARCJET_SDK_STACK,
+    sdkVersion: ARCJET_SDK_VERSION,
+  });
+
+  arcjetClient = arcjet({
+    key: arcjetKey,
+    client,
+    log: new Logger({ level: "warn" }),
+    characteristics: ["ip.src"],
+    rules: [
+      shield({
+        mode: "LIVE",
+      }),
+    ],
+  });
+
+  return arcjetClient;
+};
+
+const resolveRequestContext = async (sourceRequest?: Request) => {
+  if (sourceRequest) {
+    return { request: sourceRequest };
+  }
+
+  const context = await getCloudflareContext({ async: true });
+  const adapterContext = context.ctx as
+    | { request?: Request; waitUntil?: (promise: Promise<unknown>) => void }
+    | undefined;
+
+  const request = adapterContext?.request;
+
+  if (!request) {
+    throw new Error("Unable to resolve the current request for Arcjet");
+  }
+
+  return { request, waitUntil: adapterContext?.waitUntil };
+};
+
+const buildArcjetRequest = (
+  request: Request
+): ArcjetRequest<Record<string, unknown>> => {
+  const url = new URL(request.url);
+  const headers = new Headers(request.headers);
+  const ipHeader =
+    headers.get("cf-connecting-ip") ?? headers.get("x-forwarded-for") ?? "";
+  const ip = ipHeader.split(",").at(0)?.trim() ?? "";
+
+  return {
+    ip,
+    method: request.method,
+    protocol: url.protocol,
+    host: url.host,
+    path: url.pathname,
+    query: url.search,
+    headers,
+    cookies: headers.get("cookie") ?? "",
+  };
+};
 
 export const secure = async (
   allow: (ArcjetWellKnownBot | ArcjetBotCategory)[],
   sourceRequest?: Request
 ) => {
-  if (!arcjetKey) {
+  const client = getArcjetClient();
+
+  if (!client) {
     return;
   }
 
-  const base = arcjet({
-    // Get your site key from https://app.arcjet.com
-    key: arcjetKey,
-    // Identify the user by their IP address
-    characteristics: ["ip.src"],
-    rules: [
-      // Protect against common attacks with Arcjet Shield
-      shield({
-        // Will block requests. Use "DRY_RUN" to log only
-        mode: "LIVE",
-      }),
-      // Other rules are added in different routes
-    ],
-  });
+  const { request, waitUntil } = await resolveRequestContext(sourceRequest);
+  const aj = client.withRule(detectBot({ mode: "LIVE", allow }));
+  const arcjetRequest = buildArcjetRequest(request);
+  const bodyGetter = async () => {
+    try {
+      const clone = request.clone();
+      const text = await clone.text();
 
-  const req = sourceRequest ?? (await request());
-  const aj = base.withRule(detectBot({ mode: "LIVE", allow }));
-  const decision = await aj.protect(req);
+      return text.length > 0 ? text : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const context = {
+    getBody: bodyGetter,
+    waitUntil,
+  };
+  const decision = await aj.protect(context, arcjetRequest);
 
   if (decision.isDenied()) {
     if (decision.reason.isBot()) {

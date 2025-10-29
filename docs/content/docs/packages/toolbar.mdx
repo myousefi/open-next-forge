@@ -1,28 +1,26 @@
 ---
 title: Toolbar
-description: next-forge uses the Vercel Toolbar to allow you to override feature flags in development.
+description: next-forge ships with a Cloudflare-based inspector that lets you override feature flags in development.
 ---
 
-The [Vercel Toolbar](https://vercel.com/docs/workflow-collaboration/vercel-toolbar) is a tool that allows you to leave feedback, navigate through important dashboard pages, share deployments, use Draft Mode for previewing unpublished content, and Edit Mode for editing content in real-time. next-forge has the Vercel Toolbar enabled by default.
+The Cloudflare feature flag inspector is a lightweight script you can host alongside your Worker. It renders a floating toolbar that talks to the `/.well-known/feature-flags` endpoint in each app so you can flip flag values while previewing new builds.
 
-## Link your applications
+## Host the inspector script
 
-Go into each application and run `vercel link`, like so:
+Deploy a Worker that serves a JavaScript bundle for the inspector UI. You can reuse the same Worker that powers your feature flag API – just expose the bundle at a stable URL such as `/toolbar.js`.
 
-```sh title="Terminal"
-cd apps/app && vercel link && cd ../..
-cd apps/web && vercel link && cd ../..
-cd apps/api && vercel link && cd ../..
+## Configure your applications
+
+Add the inspector URL to each application's environment so the shared toolbar component knows where to load it from:
+
+```env title=".env.local"
+NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL="https://flags.example.workers.dev/toolbar.js"
 ```
 
-This will create a `.vercel/project.json` file in each application.
+Protect the `/.well-known/feature-flags` route with a shared secret so only the inspector can read definitions:
 
-## Add the environment variable
-
-Then, simply add a `FLAGS_SECRET` environment variable to each application's `.env.local` file, like so:
-
-```js title=".env.local"
+```env title=".env.local"
 FLAGS_SECRET="test"
 ```
 
-These two steps are optional, but they are recommended to ensure that the Vercel Toolbar is enabled in each application.
+You can now open the toolbar in any environment by clicking the "Flags" icon that appears once the inspector script loads.

@@ -1,25 +1,35 @@
 "use client";
 
-import type { ResolveMentionSuggestionsArgs } from "@liveblocks/client";
-import type { ResolveUsersArgs } from "@liveblocks/node";
 import {
   ClientSideSuspense,
   LiveblocksProvider,
   RoomProvider,
 } from "@liveblocks/react/suspense";
-import type { ComponentProps, ReactNode } from "react";
+import type {
+  ClientOptions,
+  IUserInfo,
+  ResolveUsersArgs,
+} from "@liveblocks/client";
+import type { ReactNode } from "react";
 
-type RoomProps = ComponentProps<typeof LiveblocksProvider> & {
+type LiveblocksUserInfo = IUserInfo & { color: string };
+
+type LiveblocksUserMeta = {
+  id?: string;
+  info?: LiveblocksUserInfo;
+};
+
+type RoomProps = Omit<
+  ClientOptions<LiveblocksUserMeta>,
+  "authEndpoint" | "publicApiKey" | "resolveUsers"
+> & {
   id: string;
   children: ReactNode;
   authEndpoint: string;
   fallback: ReactNode;
   resolveUsers?: (
     args: ResolveUsersArgs
-  ) => Promise<Liveblocks["UserMeta"]["info"][]>;
-  resolveMentionSuggestions?: (
-    args: ResolveMentionSuggestionsArgs
-  ) => Promise<string[]>;
+  ) => Promise<LiveblocksUserInfo[] | undefined>;
 };
 
 export const Room = ({
@@ -27,11 +37,23 @@ export const Room = ({
   children,
   authEndpoint,
   fallback,
-  ...props
-}: RoomProps) => (
-  <LiveblocksProvider authEndpoint={authEndpoint} {...props}>
-    <RoomProvider id={id} initialPresence={{ cursor: null }}>
-      <ClientSideSuspense fallback={fallback}>{children}</ClientSideSuspense>
-    </RoomProvider>
-  </LiveblocksProvider>
-);
+  resolveUsers,
+  ...clientOptions
+}: RoomProps) => {
+  const providerOptions: ClientOptions<LiveblocksUserMeta> = {
+    authEndpoint,
+    ...clientOptions,
+  };
+
+  if (resolveUsers) {
+    providerOptions.resolveUsers = async (args) => resolveUsers(args);
+  }
+
+  return (
+    <LiveblocksProvider {...providerOptions}>
+      <RoomProvider id={id} initialPresence={{ cursor: null }}>
+        <ClientSideSuspense fallback={fallback}>{children}</ClientSideSuspense>
+      </RoomProvider>
+    </LiveblocksProvider>
+  );
+};

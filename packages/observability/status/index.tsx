@@ -1,47 +1,60 @@
 import "server-only";
 import { keys } from "../keys";
-import type { BetterStackResponse } from "./types";
-
-const apiKey = keys().BETTERSTACK_API_KEY;
-const url = keys().BETTERSTACK_URL;
+const endpoint = keys().OBSERVABILITY_STATUS_ENDPOINT;
 
 export const Status = async () => {
-  if (!(apiKey && url)) {
+  if (!endpoint) {
     return null;
   }
 
   let statusColor = "bg-muted-foreground";
   let statusLabel = "Unable to fetch status";
+  let statusUrl = endpoint;
 
   try {
-    const response = await fetch(
-      "https://uptime.betterstack.com/api/v2/monitors",
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    );
+    const response = await fetch(endpoint, { cache: "no-store" });
 
     if (!response.ok) {
       throw new Error("Failed to fetch status");
     }
 
-    const { data } = (await response.json()) as BetterStackResponse;
+    const payload = (await response.json()) as {
+      status?: string;
+      url?: string;
+      label?: string;
+    };
 
-    const status =
-      data.filter((monitor) => monitor.attributes.status === "up").length /
-      data.length;
+    if (payload.url) {
+      statusUrl = payload.url;
+    }
 
-    if (status === 0) {
-      statusColor = "bg-destructive";
-      statusLabel = "Degraded performance";
-    } else if (status < 1) {
-      statusColor = "bg-warning";
-      statusLabel = "Partial outage";
-    } else {
-      statusColor = "bg-success";
-      statusLabel = "All systems normal";
+    const normalized = payload.status?.toLowerCase() ?? "unknown";
+
+    switch (normalized) {
+      case "operational":
+      case "ok":
+        statusColor = "bg-success";
+        statusLabel = payload.label ?? "All systems normal";
+        break;
+      case "degraded":
+      case "partial":
+      case "partial_outage":
+        statusColor = "bg-warning";
+        statusLabel = payload.label ?? "Partial outage";
+        break;
+      case "down":
+      case "outage":
+        statusColor = "bg-destructive";
+        statusLabel = payload.label ?? "Degraded performance";
+        break;
+      default:
+        statusColor = "bg-muted-foreground";
+        statusLabel = payload.label ?? "Status unknown";
+        break;
+    }
+
+    if (!payload.status && payload.label) {
+      statusLabel = payload.label;
     }
   } catch {
     statusColor = "bg-muted-foreground";
@@ -51,7 +64,7 @@ export const Status = async () => {
   return (
     <a
       className="flex items-center gap-3 font-medium text-sm"
-      href={url}
+      href={statusUrl}
       rel="noreferrer"
       target="_blank"
     >

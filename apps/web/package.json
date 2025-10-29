@@ -3,8 +3,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001 --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build && opennextjs-cloudflare build",
     "start": "next start",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy",
     "analyze": "ANALYZE=true npm run build",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
@@ -40,11 +42,13 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.11.0",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "24.7.0",
     "@types/react": "19.2.1",
     "@types/react-dom": "19.2.0",
     "tailwindcss": "^4.1.14",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "4.45.0"
   }
 }

@@ -1,14 +1,15 @@
 import "server-only";
-import { Liveblocks as LiveblocksNode } from "@liveblocks/node";
 import { keys } from "./keys";
 
 type AuthenticateOptions = {
   userId: string;
   orgId: string;
-  userInfo: Liveblocks["UserMeta"]["info"];
+  userInfo: Record<string, unknown>;
 };
 
 const secret = keys().LIVEBLOCKS_SECRET;
+const FULL_ACCESS = ["room:write", "comments:write"] as const;
+const LIVEBLOCKS_API_BASE = "https://api.liveblocks.io";
 
 export const authenticate = async ({
   userId,
@@ -19,17 +20,22 @@ export const authenticate = async ({
     throw new Error("LIVEBLOCKS_SECRET is not set");
   }
 
-  const liveblocks = new LiveblocksNode({ secret });
+  const response = await fetch(`${LIVEBLOCKS_API_BASE}/v2/authorize-user`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      permissions: {
+        [`${orgId}:*`]: FULL_ACCESS,
+      },
+      userInfo,
+    }),
+  });
 
-  // Start an auth session inside your endpoint
-  const session = liveblocks.prepareSession(userId, { userInfo });
+  const body = await response.text();
 
-  // Use a naming pattern to allow access to rooms with wildcards
-  // Giving the user write access on their organization
-  session.allow(`${orgId}:*`, session.FULL_ACCESS);
-
-  // Authorize the user and return the result
-  const { status, body } = await session.authorize();
-
-  return new Response(body, { status });
+  return new Response(body, { status: response.status });
 };

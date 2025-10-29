@@ -1,5 +1,20 @@
-import { withVercelToolbar } from "@vercel/toolbar/plugins/next";
+import type { NextConfig } from "next";
 import { keys } from "../keys";
 
-export const withToolbar = (config: object) =>
-  keys().FLAGS_SECRET ? withVercelToolbar()(config) : config;
+type WithToolbar = <T extends NextConfig>(config: T) => T;
+
+export const withToolbar: WithToolbar = (config) => {
+  const { NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL } = keys();
+
+  if (!NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL) {
+    return config;
+  }
+
+  return {
+    ...config,
+    env: {
+      ...config.env,
+      NEXT_PUBLIC_FLAGS_TOOLBAR_SCRIPT_URL,
+    },
+  };
+};

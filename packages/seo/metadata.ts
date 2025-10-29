@@ -14,8 +14,24 @@ const author: Metadata["authors"] = {
 };
 const publisher = "Vercel";
 const twitterHandle = "@vercel";
-const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const fallbackWebOrigin = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3001";
+const resolvedWebOrigin = process.env.WEB_ORIGIN ?? fallbackWebOrigin;
+
+const resolveUrl = (value?: string) => {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return new URL(value);
+  } catch {
+    return undefined;
+  }
+};
+
+const metadataBase = resolveUrl(resolvedWebOrigin) ?? resolveUrl(fallbackWebOrigin);
+const metadataBaseHostname = metadataBase?.hostname;
+const metadataBaseString = metadataBase?.toString();
 
 export const createMetadata = ({
   title,
@@ -28,9 +44,7 @@ export const createMetadata = ({
     title: parsedTitle,
     description,
     applicationName,
-    metadataBase: productionUrl
-      ? new URL(`${protocol}://${productionUrl}`)
-      : undefined,
+    metadataBase,
     authors: [author],
     creator: author.name,
     formatDetection: {
@@ -47,25 +61,33 @@ export const createMetadata = ({
       type: "website",
       siteName: applicationName,
       locale: "en_US",
+      url: metadataBaseString,
     },
     publisher,
     twitter: {
       card: "summary_large_image",
       creator: twitterHandle,
+      ...(metadataBaseHostname ? { site: metadataBaseHostname } : {}),
     },
   };
 
   const metadata: Metadata = merge(defaultMetadata, properties);
 
   if (image && metadata.openGraph) {
+    const imageUrl = metadataBase ? new URL(image, metadataBase).toString() : image;
+
     metadata.openGraph.images = [
       {
-        url: image,
+        url: imageUrl,
         width: 1200,
         height: 630,
         alt: title,
       },
     ];
+
+    if (metadata.twitter) {
+      metadata.twitter.images = [imageUrl];
+    }
   }
 
   return metadata;

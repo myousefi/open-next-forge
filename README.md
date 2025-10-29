@@ -91,6 +91,35 @@ npx next-forge@latest init
 
 For detailed setup instructions, read the [documentation](https://www.next-forge.com/docs).
 
+### Cloudflare Workers preview & deployment
+
+The `app`, `api`, and `web` Next.js applications ship with [OpenNext for Cloudflare](https://opennext.js.org/cloudflare) configs and Wrangler manifests so you can run production-faithful Workers locally and deploy them to Cloudflare.
+
+1. Build the Next.js output and adapt it for Workers:
+
+   ```sh
+   pnpm --filter app build
+   pnpm --filter api build
+   pnpm --filter web build
+   ```
+
+2. Run a local Worker preview (serves the compiled bundle via Wrangler):
+
+   ```sh
+   pnpm --filter app cf:dev
+   # or pnpm --filter api cf:dev / pnpm --filter web cf:dev
+   ```
+
+3. Deploy to Cloudflare Workers when you are ready:
+
+   ```sh
+   pnpm --filter app cf:deploy
+   pnpm --filter api cf:deploy
+   pnpm --filter web cf:deploy
+   ```
+
+Each app keeps its own `open-next.config.mjs` (R2 cache + D1 tag cache overrides) and `wrangler.toml` (Worker name, routes, resource bindings, and account metadata). Update the environment variable placeholders in the manifests before running `cf:dev` or `cf:deploy`, and provision the referenced KV, R2, and D1 resources in your Cloudflare account.
+
 ## Structure
 
 next-forge uses a monorepo structure managed by Turborepo:

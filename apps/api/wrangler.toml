@@ -1,0 +1,52 @@
+name = "next-forge-api"
+main = ".open-next/worker.js"
+compatibility_date = "2025-02-15"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "${CLOUDFLARE_ACCOUNT_ID}"
+workers_dev = false
+
+routes = [
+  { pattern = "api.example.com/*", zone_id = "${CLOUDFLARE_ZONE_ID_API}" }
+]
+
+[vars]
+SVIX_TOKEN = "${SVIX_TOKEN}"
+CLERK_SECRET_KEY = "${CLERK_SECRET_KEY}"
+CLERK_WEBHOOK_SECRET = "${CLERK_WEBHOOK_SECRET}"
+RESEND_TOKEN = "${RESEND_TOKEN}"
+RESEND_FROM = "${RESEND_FROM}"
+KNOCK_SECRET_API_KEY = "${KNOCK_SECRET_API_KEY}"
+NEXT_PUBLIC_KNOCK_API_KEY = "${NEXT_PUBLIC_KNOCK_API_KEY}"
+NEXT_PUBLIC_KNOCK_FEED_CHANNEL_ID = "${NEXT_PUBLIC_KNOCK_FEED_CHANNEL_ID}"
+
+[[kv_namespaces]]
+binding = "API_FLAG_CACHE"
+id = "${API_FLAG_CACHE_ID}"
+preview_id = "${API_FLAG_CACHE_PREVIEW_ID}"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "next-forge-api-cache"
+preview_bucket_name = "next-forge-api-cache-preview"
+
+[[d1_databases]]
+binding = "APP_DATABASE"
+database_name = "next-forge-app-data"
+database_id = "${APP_DATABASE_ID}"
+preview_database_id = "${APP_DATABASE_PREVIEW_ID}"
+
+[[d1_databases]]
+binding = "NEXT_TAG_CACHE_D1"
+database_name = "next-forge-api-revalidations"
+database_id = "${API_NEXT_TAG_CACHE_D1_ID}"
+preview_database_id = "${API_NEXT_TAG_CACHE_D1_PREVIEW_ID}"
+
+[env.preview]
+workers_dev = true
+routes = [
+  { pattern = "api-preview.example.com/*", zone_id = "${CLOUDFLARE_ZONE_ID_API}" }
+]
+
+[env.preview.vars]
+SVIX_TOKEN = "${PREVIEW_SVIX_TOKEN}"

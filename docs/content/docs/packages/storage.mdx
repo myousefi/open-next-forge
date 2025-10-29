@@ -3,27 +3,34 @@ title: Storage
 description: How to store files in your application.
 ---
 
-next-forge has a `storage` package that provides a simple wrapper around [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) for file storage.
+next-forge has a `storage` package that provides a simple wrapper around Cloudflare R2 for file storage.
 
 ## Usage
 
 ### Server uploads
 
-To use the `storage` package using Server Actions, follow the instructions on [Vercel's server action documentation](https://vercel.com/docs/storage/vercel-blob/server-upload#upload-a-file-using-server-actions).
+Configure the following environment variables so the server wrapper can authenticate with R2:
+
+- `CLOUDFLARE_R2_ACCOUNT_ID`
+- `CLOUDFLARE_R2_ACCESS_KEY_ID`
+- `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
+- `CLOUDFLARE_R2_BUCKET_NAME`
+- `CLOUDFLARE_R2_PUBLIC_BASE_URL` (optional, set to your custom domain to return permanent public URLs)
 
 ```tsx title="page.tsx"
 import { put } from '@repo/storage';
 import { revalidatePath } from 'next/cache';
- 
+
 export async function Form() {
   async function uploadImage(formData: FormData) {
     'use server';
     const imageFile = formData.get('image') as File;
-    const blob = await put(imageFile.name, imageFile, {
-      access: 'public',
+    const object = await put(`images/${imageFile.name}`, imageFile, {
+      contentType: imageFile.type,
+      makePublic: true,
     });
     revalidatePath('/');
-    return blob;
+    return object;
   }
  
   return (
@@ -40,46 +47,47 @@ export async function Form() {
 
 ### Client uploads
 
-For client side usage, check out the [Vercel's client upload documentation](https://vercel.com/docs/storage/vercel-blob/client-upload).
+Expose an upload endpoint (for example, in a Worker) and set its URL in `NEXT_PUBLIC_STORAGE_UPLOAD_URL`. The client helper will post files there with multipart form data for you.
 
 ```tsx title="page.tsx"
 'use client';
- 
-import { type PutBlobResult } from '@repo/storage';
+
+import { type PutObjectResult } from '@repo/storage';
 import { upload } from '@repo/storage/client';
 import { useState, useRef } from 'react';
- 
+
 export default function AvatarUploadPage() {
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const [blob, setBlob] = useState<PutBlobResult | null>(null);
+  const [object, setObject] = useState<PutObjectResult | null>(null);
   return (
     <>
       <h1>Upload Your Avatar</h1>
- 
+
       <form
         onSubmit={async (event) => {
           event.preventDefault();
- 
+
           if (!inputFileRef.current?.files) {
             throw new Error('No file selected');
           }
- 
+
           const file = inputFileRef.current.files[0];
- 
-          const newBlob = await upload(file.name, file, {
-            access: 'public',
-            handleUploadUrl: '/api/avatar/upload',
+
+          const newObject = await upload(file, {
+            key: `avatars/${file.name}`,
+            contentType: file.type,
+            makePublic: true,
           });
- 
-          setBlob(newBlob);
+
+          setObject(newObject);
         }}
       >
         <input name="file" ref={inputFileRef} type="file" required />
         <button type="submit">Upload</button>
       </form>
-      {blob && (
+      {object && (
         <div>
-          Blob url: <a href={blob.url}>{blob.url}</a>
+          Object url: <a href={object.url}>{object.url}</a>
         </div>
       )}
     </>

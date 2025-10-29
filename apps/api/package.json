@@ -4,8 +4,10 @@
   "scripts": {
     "dev": "concurrently \"npm:next\" \"npm:stripe\"",
     "next": "next dev -p 3002 --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build && opennextjs-cloudflare build",
     "start": "next start",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy",
     "analyze": "ANALYZE=true npm run build",
     "test": "NODE_ENV=test vitest run",
     "stripe": "stripe listen --forward-to localhost:3002/webhooks/payments",
@@ -29,6 +31,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.11.0",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "24.7.0",
     "@types/react": "19.2.1",
@@ -36,6 +39,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "concurrently": "^9.2.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "4.45.0"
   }
 }
